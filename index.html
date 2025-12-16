@@ -55,16 +55,10 @@
       pointer-events:none;
       opacity: .12;
       background-image:
-        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%	discard%3Crect width='220' height='220' filter='url(%23n)' opacity='.35'/%3E%3C/svg%3E");
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='220' height='220' filter='url(%23n)' opacity='.35'/%3E%3C/svg%3E");
       background-size: 220px 220px;
       mix-blend-mode: overlay;
       transform: translateZ(0);
-    }
-
-    /* The SVG above includes a tab accidentally in some environments; provide fallback */
-    .grain{
-      background-image:
-        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='220' height='220' filter='url(%23n)' opacity='.35'/%3E%3C/svg%3E");
     }
 
     .wrap{
@@ -178,7 +172,7 @@
       .wrap{ width:min(1150px, calc(100% - 28px)); }
     }
 
-    /* IMPORTANT: Compose lift + rotate using CSS variables so they never fight */
+    /* Compose lift + rotate via CSS vars so hover never overrides flip */
     .flip{
       --lift: 0px;
       --ry: 0deg;
@@ -188,11 +182,11 @@
       min-height: inherit;
       border-radius: var(--radius);
 
-      transform: translateY(var(--lift)) rotateY(var(--ry));
+      transform: translateY(var(--lift)) rotateY(var(--ry)) translateZ(0);
       transform-style: preserve-3d;
       -webkit-transform-style: preserve-3d;
 
-      transition: transform .75s cubic-bezier(.2,.8,.2,1), filter .2s ease;
+      transition: transform .75s cubic-bezier(.2,.8,.2,1), box-shadow .25s ease;
       outline:none;
       will-change: transform;
       cursor: pointer;
@@ -200,9 +194,10 @@
 
     .card[data-flipped="true"] .flip{ --ry: 180deg; }
 
+    /* Hover lift ONLY. No filter here (filters + 3D cause the reverse-face bug). */
     .card:hover .flip{
       --lift: -4px;
-      filter: saturate(1.04);
+      box-shadow: 0 26px 80px rgba(0,0,0,.60);
     }
 
     .face{
@@ -222,8 +217,9 @@
       -webkit-backdrop-filter: blur(12px);
     }
 
-    .front{ transform: rotateY(0deg); }
-    .back { transform: rotateY(180deg); }
+    /* Tiny Z offsets prevent z-fighting shimmer */
+    .front{ transform: rotateY(0deg) translateZ(0.2px); }
+    .back { transform: rotateY(180deg) translateZ(0.2px); }
 
     .face:before{
       content:"";
@@ -247,7 +243,6 @@
       mix-blend-mode: overlay;
     }
 
-    /* Inner wrapper clips safely without breaking 3D */
     .face-inner{
       position:relative;
       height:100%;
@@ -257,6 +252,10 @@
       overflow:hidden;
       border-radius: var(--radius);
     }
+
+    /* Nicer border pop on hover without breaking 3D */
+    .card:hover .face{ border-color: rgba(255,255,255,.28); }
+    .card:hover .badge{ border-color: rgba(122,162,255,.40); }
 
     .toprow{
       display:flex;
@@ -276,6 +275,7 @@
       color: rgba(234,240,255,.92);
       font-size: 12px;
       white-space: nowrap;
+      transition: border-color .25s ease;
     }
 
     .count{
@@ -383,7 +383,6 @@
       -webkit-backdrop-filter: blur(10px);
     }
 
-    /* Focus styling */
     .flip:focus-visible{
       outline: none;
       box-shadow: 0 0 0 3px rgba(122,162,255,.35), var(--shadow);
@@ -391,7 +390,7 @@
 
     @media (prefers-reduced-motion: reduce){
       .flip{ transition:none; }
-      .card:hover .flip{ filter:none; --lift:0px; }
+      .card:hover .flip{ --lift:0px; box-shadow: none; }
     }
   </style>
 </head>
