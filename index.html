@@ -26,7 +26,6 @@
     *{ box-sizing:border-box; }
     html,body{ height:100%; }
 
-    /* Keep body background flat; actual background is a fixed layer */
     body{
       margin:0;
       font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
@@ -35,7 +34,7 @@
       overflow-x:hidden;
     }
 
-    /* Fixed background layer (never repeats while scrolling) */
+    /* Fixed background (never repeats while scrolling) */
     .bg{
       position: fixed;
       inset: 0;
@@ -48,7 +47,7 @@
       transform: translateZ(0);
     }
 
-    /* Subtle grain for “nicer” */
+    /* Subtle grain */
     .grain{
       position: fixed;
       inset: 0;
@@ -56,10 +55,16 @@
       pointer-events:none;
       opacity: .12;
       background-image:
-        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='220' height='220' filter='url(%23n)' opacity='.35'/%3E%3C/svg%3E");
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%	discard%3Crect width='220' height='220' filter='url(%23n)' opacity='.35'/%3E%3C/svg%3E");
       background-size: 220px 220px;
       mix-blend-mode: overlay;
       transform: translateZ(0);
+    }
+
+    /* The SVG above includes a tab accidentally in some environments; provide fallback */
+    .grain{
+      background-image:
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='220' height='220' filter='url(%23n)' opacity='.35'/%3E%3C/svg%3E");
     }
 
     .wrap{
@@ -164,7 +169,6 @@
       perspective: 1200px;
       min-height: 340px;
     }
-
     @media (max-width: 980px){
       .card{ grid-column: span 6; min-height: 360px; }
     }
@@ -174,18 +178,32 @@
       .wrap{ width:min(1150px, calc(100% - 28px)); }
     }
 
+    /* IMPORTANT: Compose lift + rotate using CSS variables so they never fight */
     .flip{
+      --lift: 0px;
+      --ry: 0deg;
+
       position:relative;
       height: 100%;
       min-height: inherit;
       border-radius: var(--radius);
+
+      transform: translateY(var(--lift)) rotateY(var(--ry));
       transform-style: preserve-3d;
-      transition: transform .75s cubic-bezier(.2,.8,.2,1);
+      -webkit-transform-style: preserve-3d;
+
+      transition: transform .75s cubic-bezier(.2,.8,.2,1), filter .2s ease;
       outline:none;
       will-change: transform;
+      cursor: pointer;
     }
 
-    .card[data-flipped="true"] .flip{ transform: rotateY(180deg); }
+    .card[data-flipped="true"] .flip{ --ry: 180deg; }
+
+    .card:hover .flip{
+      --lift: -4px;
+      filter: saturate(1.04);
+    }
 
     .face{
       position:absolute;
@@ -196,14 +214,17 @@
       border: 1px solid var(--stroke);
       background: linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.025));
       box-shadow: var(--shadow);
+
       backface-visibility: hidden;
       -webkit-backface-visibility: hidden;
-      overflow: visible;
+
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
     }
 
-    /* Soft edge glow + a gentle shine */
+    .front{ transform: rotateY(0deg); }
+    .back { transform: rotateY(180deg); }
+
     .face:before{
       content:"";
       position:absolute; inset:-1px;
@@ -226,19 +247,15 @@
       mix-blend-mode: overlay;
     }
 
+    /* Inner wrapper clips safely without breaking 3D */
     .face-inner{
       position:relative;
       height:100%;
       padding: 18px 18px 14px;
       display:flex;
       flex-direction:column;
-      overflow:hidden; /* clipping happens here, safe with 3D */
+      overflow:hidden;
       border-radius: var(--radius);
-    }
-
-    .back{
-      transform: rotateY(180deg);
-      background: linear-gradient(180deg, rgba(255,255,255,.075), rgba(255,255,255,.03));
     }
 
     .toprow{
@@ -353,20 +370,6 @@
       color: rgba(234,240,255,.88);
     }
 
-    .btn{ cursor:pointer; }
-
-    /* Nicer hover: lift + slightly brighter border (no overflow issues) */
-    .card:hover .flip{
-      transform: translateY(-4px) rotateY(0deg);
-      filter: saturate(1.04);
-    }
-    .card[data-flipped="true"]:hover .flip{
-      transform: translateY(-4px) rotateY(180deg);
-    }
-    .card:hover .face{
-      border-color: rgba(255,255,255,.28);
-    }
-
     .empty{
       margin-top: 18px;
       padding: 18px;
@@ -380,9 +383,15 @@
       -webkit-backdrop-filter: blur(10px);
     }
 
+    /* Focus styling */
+    .flip:focus-visible{
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(122,162,255,.35), var(--shadow);
+    }
+
     @media (prefers-reduced-motion: reduce){
       .flip{ transition:none; }
-      .card:hover .flip{ transform: none !important; }
+      .card:hover .flip{ filter:none; --lift:0px; }
     }
   </style>
 </head>
@@ -408,7 +417,7 @@
             </div>
 
             <div class="pill" title="Flip all cards back">
-              <button id="reset" class="btn" style="all:unset; cursor:pointer; color:rgba(234,240,255,.9); font-size:13px; padding:2px 6px;">
+              <button id="reset" style="all:unset; cursor:pointer; color:rgba(234,240,255,.9); font-size:13px; padding:2px 6px;">
                 Reset flips
               </button>
               <span class="kbd">R</span>
@@ -562,7 +571,7 @@
         card.dataset.flipped = "false";
 
         const flip = document.createElement("div");
-        flip.className = "flip btn";
+        flip.className = "flip";
         flip.tabIndex = 0;
         flip.setAttribute("role", "button");
         flip.setAttribute("aria-pressed", "false");
@@ -579,9 +588,7 @@
               <div class="tagline">${r.tagline}</div>
 
               <div class="footerrow">
-                <div class="hint">
-                  <span class="kbd">Click</span><span>to flip</span>
-                </div>
+                <div class="hint"><span class="kbd">Click</span><span>to flip</span></div>
                 <div class="source"></div>
               </div>
             </div>
@@ -606,9 +613,7 @@
               </div>
 
               <div class="footerrow">
-                <div class="hint">
-                  <span class="kbd">Enter</span><span>or</span><span class="kbd">Space</span>
-                </div>
+                <div class="hint"><span class="kbd">Enter</span><span>or</span><span class="kbd">Space</span></div>
                 <div class="source">Click again to return</div>
               </div>
             </div>
